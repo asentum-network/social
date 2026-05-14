@@ -1,10 +1,12 @@
-// Mobile bottom nav: Home / Profile tabs + floating compose FAB at
-// bottom-left. Routes via next/router push so URL state stays accurate.
+// Mobile bottom nav: Home / Activity / Profile / Settings tabs +
+// floating compose FAB at bottom-left.
 //   — milkie
 
 import { useRouter } from 'next/router';
 import { useWallet } from '../lib/wallet';
-import { IconHome, IconUser, IconPlus } from './Icons';
+import {
+  IconHome, IconUser, IconActivity, IconSettings, IconPlus,
+} from './Icons';
 
 export default function BottomNav({ onCompose }) {
   const router = useRouter();
@@ -12,6 +14,8 @@ export default function BottomNav({ onCompose }) {
   const path = router.pathname;
   const isFeed = path === '/';
   const isProfile = path.startsWith('/u/');
+  const isActivity = path.startsWith('/activity');
+  const isSettings = path === '/settings';
 
   const goProfile = () => {
     if (address) router.push(`/u/${address.toLowerCase()}`);
@@ -26,7 +30,7 @@ export default function BottomNav({ onCompose }) {
           left: 0,
           right: 0,
           bottom: 0,
-          padding: '8px 18px',
+          padding: '8px 12px',
           paddingBottom: 'max(14px, env(safe-area-inset-bottom))',
           background: 'rgba(252,251,249,0.88)',
           backdropFilter: 'blur(14px) saturate(160%)',
@@ -39,10 +43,16 @@ export default function BottomNav({ onCompose }) {
         }}
       >
         <NavTab active={isFeed} onClick={() => router.push('/')} label="Home">
-          <IconHome filled={isFeed} size={26} />
+          <IconHome filled={isFeed} size={24} />
+        </NavTab>
+        <NavTab active={isActivity} onClick={() => router.push('/activity')} label="Activity">
+          <IconActivity filled={isActivity} size={24} />
         </NavTab>
         <NavTab active={isProfile} onClick={goProfile} label="Profile">
-          <IconUser filled={isProfile} size={26} />
+          <IconUser filled={isProfile} size={24} />
+        </NavTab>
+        <NavTab active={isSettings} onClick={() => router.push('/settings')} label="Settings">
+          <IconSettings filled={isSettings} size={24} />
         </NavTab>
       </div>
 

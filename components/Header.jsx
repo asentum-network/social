@@ -49,13 +49,13 @@ export default function Header({ onBack, title }) {
             <span
               style={{
                 fontFamily: 'var(--font-display)',
-                fontSize: 22,
+                fontSize: 18,
                 fontWeight: 600,
-                letterSpacing: -0.6,
+                letterSpacing: -0.5,
                 color: 'var(--text-1)',
               }}
             >
-              asentum
+              asepost
             </span>
             <span
               style={{

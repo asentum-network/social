@@ -10,7 +10,7 @@ import Composer from './Composer';
 import WalletModal from './WalletModal';
 import ActionToastView from './ActionToastView';
 import { useWallet } from '../lib/wallet';
-import { IconHome, IconUser, IconPlus, IconBack } from './Icons';
+import { IconHome, IconUser, IconActivity, IconSettings, IconPlus, IconBack } from './Icons';
 
 export default function DesktopChrome({ children, title, onBack }) {
   const router = useRouter();
@@ -20,6 +20,8 @@ export default function DesktopChrome({ children, title, onBack }) {
   const path = router.pathname;
   const isFeed = path === '/';
   const isProfile = path.startsWith('/u/');
+  const isActivity = path.startsWith('/activity');
+  const isSettings = path === '/settings';
   const handleBack = onBack || (() => router.back());
 
   const goProfile = () => {
@@ -60,13 +62,13 @@ export default function DesktopChrome({ children, title, onBack }) {
             <span
               style={{
                 fontFamily: 'var(--font-display)',
-                fontSize: 22,
+                fontSize: 18,
                 fontWeight: 600,
-                letterSpacing: -0.6,
+                letterSpacing: -0.5,
                 color: 'var(--text-1)',
               }}
             >
-              asentum
+              asepost
             </span>
             <span
               style={{
@@ -86,9 +88,17 @@ export default function DesktopChrome({ children, title, onBack }) {
             <IconHome filled={isFeed} size={17} />
             <span>Home</span>
           </DesktopTab>
+          <DesktopTab active={isActivity} onClick={() => router.push('/activity')}>
+            <IconActivity filled={isActivity} size={17} />
+            <span>Activity</span>
+          </DesktopTab>
           <DesktopTab active={isProfile} onClick={goProfile}>
             <IconUser filled={isProfile} size={17} />
             <span>Profile</span>
+          </DesktopTab>
+          <DesktopTab active={isSettings} onClick={() => router.push('/settings')}>
+            <IconSettings filled={isSettings} size={17} />
+            <span>Settings</span>
           </DesktopTab>
         </div>
 

@@ -1,15 +1,21 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import Link from 'next/link';
+import Head from 'next/head';
 import Layout from '../../components/Layout';
 import PostCard from '../../components/PostCard';
-import { getPost, getProfile, shortAddr } from '../../lib/contracts';
+import { getPost, getProfile, getScore, getVote, isFollowing } from '../../lib/contracts';
+import { useWallet } from '../../lib/wallet';
 
 export default function PostPermalink() {
   const router = useRouter();
   const id = router.query.id;
+  const { address: me } = useWallet();
+
   const [post, setPost] = useState(undefined);
   const [profile, setProfile] = useState(null);
+  const [score, setScore] = useState(0);
+  const [vote, setVote] = useState('0');
+  const [follows, setFollows] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -21,57 +27,73 @@ export default function PostPermalink() {
         if (cancelled) return;
         setPost(p);
         if (p?.author) {
-          const prof = await getProfile(p.author);
-          if (!cancelled) setProfile(prof);
+          const [prof, s, v, f] = await Promise.all([
+            getProfile(p.author).catch(() => null),
+            getScore(String(id)).catch(() => 0),
+            me ? getVote(me, String(id)).catch(() => '0') : Promise.resolve('0'),
+            me && p.author.toLowerCase() !== me.toLowerCase()
+              ? isFollowing(me, p.author).catch(() => false)
+              : Promise.resolve(false),
+          ]);
+          if (cancelled) return;
+          setProfile(prof);
+          setScore(Number(s) || 0);
+          setVote(v || '0');
+          setFollows(!!f);
         }
       } catch (err) {
         if (!cancelled) setError(err.message || String(err));
       }
     })();
     return () => { cancelled = true; };
-  }, [id]);
+  }, [id, me]);
 
   return (
-    <Layout>
-      <div className="max-w-3xl mx-auto px-4 py-10">
-        <Link href="/" className="font-mono text-[11px] uppercase tracking-wider text-ink-3 hover:text-accent">
-          ← Back to feed
-        </Link>
-
-        <h1 className="font-sans text-2xl font-bold mt-4 mb-1">Post #{id}</h1>
-
-        {error && (
-          <div className="border border-red-800 bg-red-900/20 text-red-300 p-4 font-mono text-[12px] mt-4">
-            {error}
-          </div>
-        )}
-
-        {post === undefined && !error && (
-          <div className="border border-line bg-bg-1 p-5 mt-6 animate-pulse">
-            <div className="h-3 w-24 bg-bg-3 mb-3" />
-            <div className="h-4 w-full bg-bg-3 mb-2" />
-            <div className="h-4 w-3/4 bg-bg-3" />
-          </div>
-        )}
-
-        {post === null && (
-          <div className="border border-line bg-bg-1 p-8 mt-6 text-center">
-            <p className="font-mono text-[12px] text-ink-3">post not found</p>
-          </div>
-        )}
-
-        {post && (
-          <div className="mt-6 space-y-4">
-            <PostCard post={post} profile={profile} />
-            <div className="border border-line bg-bg-1 p-4 font-mono text-[11px] text-ink-3 space-y-1">
-              <div>id: <span className="text-ink-1">{post.id}</span></div>
-              <div>author: <Link href={`/u/${post.author}`} className="text-accent hover:underline">{shortAddr(post.author)}</Link></div>
-              <div>block: <span className="text-ink-1">{post.block}</span></div>
-              <div>timestamp: <span className="text-ink-1">{new Date(Number(post.ts) * 1000).toISOString()}</span></div>
+    <>
+      <Head>
+        <title>Post #{id} · asentum</title>
+      </Head>
+      <Layout title={`Post #${id || ''}`} onBack={() => router.push('/')}>
+        <div style={{ padding: '20px 14px 140px', maxWidth: 620, margin: '0 auto' }}>
+          {error && (
+            <div
+              style={{
+                background: 'oklch(96% 0.04 25)',
+                border: '1px solid oklch(86% 0.08 25)',
+                color: 'oklch(38% 0.12 25)',
+                fontSize: 13,
+                padding: '12px 16px',
+                borderRadius: 12,
+                marginBottom: 14,
+              }}
+            >
+              {error}
             </div>
-          </div>
-        )}
-      </div>
-    </Layout>
+          )}
+
+          {post === undefined && !error && (
+            <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--text-3)', fontSize: 14 }}>
+              Loading…
+            </div>
+          )}
+
+          {post === null && !error && (
+            <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--text-3)', fontSize: 14 }}>
+              Post not found.
+            </div>
+          )}
+
+          {post && (
+            <PostCard
+              post={post}
+              profile={profile}
+              initialScore={score}
+              initialVote={vote}
+              isFollowing={follows}
+            />
+          )}
+        </div>
+      </Layout>
+    </>
   );
 }
