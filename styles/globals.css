@@ -1,23 +1,37 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap');
 
 :root {
-  --font-dm-mono: 'DM Mono', ui-monospace, monospace;
-  --font-plus-jakarta: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --bg: oklch(99% 0.004 80);
+  --surface: #ffffff;
+  --surface-2: oklch(96.5% 0.005 80);
+  --border: oklch(92.5% 0.006 80);
+  --border-strong: oklch(86% 0.008 80);
+  --text-1: oklch(22% 0.02 270);
+  --text-2: oklch(48% 0.015 270);
+  --text-3: oklch(64% 0.012 270);
+  --accent: oklch(58% 0.18 280);
+  --font-display: 'Geist', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
 }
 
+* { box-sizing: border-box; }
+
 html, body {
-  background: #000;
-  color: #FFF;
-  font-family: var(--font-plus-jakarta);
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  color: var(--text-1);
+  background: var(--bg);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
 }
+
+#__next { height: 100%; }
 
 a { color: inherit; text-decoration: none; }
 
-/* Scrollbar polish — keeps the dark aesthetic. */
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-track { background: #0A0A0A; }
-::-webkit-scrollbar-thumb { background: #1F1F1F; border-radius: 5px; }
-::-webkit-scrollbar-thumb:hover { background: #2A2A2A; }
+button { font-family: inherit; }
+
+::-webkit-scrollbar { width: 0; height: 0; }
+* { scrollbar-width: none; }

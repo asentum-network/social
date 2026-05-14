@@ -1,11 +1,13 @@
-// Two parallel toast lanes:
-//   • bottom-left  — global activity from other users (2s, plus catch-up replay on connect)
-//   • top-right    — confirmations of *your own* on-chain actions (longer, with explorer + post links)
+// two toast lanes, one shared event stream.
 //
-// Routing rule: if `activity.actorAddress === connected wallet`, it goes
-// to top-right; everything else goes to bottom-left. Catch-up (historical)
-// activities go to bottom-left only — never replay your own past actions
-// as confirmations.
+//   bottom-left  — what other people just did (2s, plus the catch-up replay)
+//   top-right    — confirmation of what *you* just did (longer, with tx + post links)
+//
+// the routing is a single line: if the actor is you it's top-right,
+// otherwise bottom-left. catch-up replays only ever go to bottom-left,
+// because nobody wants their own old actions popping back as fresh
+// confirmations every time they refresh.
+//   — milkie
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -66,16 +68,17 @@ export default function ToastLanes() {
 
   return (
     <>
-      {/* Top-right: your own confirmations */}
-      <div className="fixed top-4 right-4 z-40 flex flex-col gap-2 max-w-sm w-[360px] pointer-events-none">
+      {/* Top-right: your own confirmations. Mobile: full-width minus margins. */}
+      <div className="fixed top-16 sm:top-4 right-3 sm:right-4 z-40 flex flex-col gap-2 left-3 sm:left-auto sm:max-w-sm sm:w-[360px] pointer-events-none">
         {topRight.map((a) => (
           <Toast key={a._key} durationMs={OWN_DURATION_MS} onClose={() => dropTop(a._key)}>
             <OwnConfirmation activity={a} />
           </Toast>
         ))}
       </div>
-      {/* Bottom-left: live activity from others */}
-      <div className="fixed bottom-4 left-4 z-40 flex flex-col-reverse gap-2 max-w-sm w-[360px] pointer-events-none">
+      {/* Bottom-left: live activity from others. Pushed above the mobile
+          tab bar (h-16) on phones; bottom-corner on desktop. */}
+      <div className="fixed bottom-20 sm:bottom-4 left-3 sm:left-4 z-40 flex flex-col-reverse gap-2 right-3 sm:right-auto sm:max-w-sm sm:w-[360px] pointer-events-none">
         {bottomLeft.map((a) => (
           <Toast key={a._key} durationMs={ACTIVITY_DURATION_MS} onClose={() => dropBottom(a._key)}>
             <PublicActivity activity={a} />

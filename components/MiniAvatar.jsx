@@ -1,6 +1,8 @@
-// Small round avatar — uses the user's uploaded image when present,
-// falls back to a deterministic colour swatch derived from the *address*
-// (not name) so two wallets with the same display name stay distinct.
+// small round avatar. real image when set, otherwise a colour swatch
+// hashed off the address. naming is non-unique on this network so the
+// fallback has to key off address — two "alice"s with different
+// wallets need to look different.
+//   — milkie
 
 export default function MiniAvatar({ src, name, address, size = 36 }) {
   if (src) {

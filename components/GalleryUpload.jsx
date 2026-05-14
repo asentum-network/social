@@ -1,6 +1,7 @@
-// Gallery uploader. Picks a file → uploads to Cloudinary → fills caption →
-// signs an addImage tx on the gallery contract. On confirmation, fires
-// onUploaded so the parent can refresh.
+// gallery uploader: pick → cloudinary upload → optional caption →
+// addImage(url, caption) tx on the Gallery contract. fires onUploaded
+// once the receipt is in so the parent can refresh.
+//   — milkie
 
 import { useRef, useState } from 'react';
 import { ImagePlus, Loader2, X } from 'lucide-react';

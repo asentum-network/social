@@ -1,8 +1,7 @@
-// Drag-drop image picker that uploads to /api/upload and reports back
-// the resulting Cloudinary URL via onUploaded(url).
-//
-// Used for profile avatars and (later) gallery + post images. Same
-// component serves all three by passing a different `kind` prop.
+// drag-drop picker → /api/upload → cloudinary URL → onUploaded(url).
+// kind prop picks the cloudinary folder + transform preset, so this
+// one component serves avatars / posts / gallery uploads.
+//   — milkie
 
 import { useRef, useState } from 'react';
 import { ImagePlus, Loader2, X } from 'lucide-react';

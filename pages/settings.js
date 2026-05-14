@@ -68,9 +68,9 @@ export default function Settings() {
 
   return (
     <Layout>
-      <div className="max-w-3xl mx-auto px-4 py-10">
-        <h1 className="font-sans text-3xl font-bold mb-1">Settings</h1>
-        <p className="font-mono text-[12px] uppercase tracking-wider text-ink-3 mb-8">
+      <div className="max-w-3xl mx-auto px-4 py-6 sm:py-10">
+        <h1 className="font-sans text-display mb-1">Settings</h1>
+        <p className="font-mono text-micro uppercase text-ink-3 mb-6 sm:mb-8">
           Edit your on-chain profile
         </p>
 
@@ -84,7 +84,7 @@ export default function Settings() {
             <div className="h-20 w-full bg-bg-3" />
           </div>
         ) : (
-          <div className="border border-line bg-bg-1 p-6 space-y-6">
+          <div className="border border-line bg-bg-1 p-5 sm:p-6 space-y-6 rounded-card shadow-card">
             <div className="font-mono text-[11px] text-ink-3 break-all">
               connected: <span className="text-accent">{shortAddr(address)}</span>
               <span className="ml-2 text-ink-3">{address}</span>

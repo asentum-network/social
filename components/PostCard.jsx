@@ -1,153 +1,242 @@
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { ChevronUp, ChevronDown } from 'lucide-react';
-import MiniAvatar from './MiniAvatar';
+// Single post card in the feed. Author header with follow/unfollow,
+// text, optional image, and a like/comment/share row.
+//
+// Likes route through the AsentumVotes contract: tapping the heart
+// calls upvote(postId). The displayed count is `score` (upvotes minus
+// downvotes from getScore) — close enough to "likes" for the UI.
+//   — milkie
+
+import { useState } from 'react';
+import { useRouter } from 'next/router';
+import Avatar from './Avatar';
+import PostImage from './PostImage';
+import { IconHeart, IconComment, IconShare } from './Icons';
 import { useWallet } from '../lib/wallet';
-import { CONTRACTS, getScore, getVote, shortAddr, timeAgo } from '../lib/contracts';
+import { useActionToast } from '../lib/actionToast';
+import { CONTRACTS } from '../lib/contracts';
 import { waitForReceipt } from '../lib/tx';
+import { fmtCount, timeAgo, shortAddr } from '../lib/format';
 
-export default function PostCard({ post, profile, initialScore, initialVote }) {
-  const { address: connectedAddr, isConnected, openModal, callContract } = useWallet();
-  const author = post.author?.toLowerCase() || '';
-  const displayName = profile?.name || shortAddr(author);
-  const hasImage = !!post.imageUrl;
-  const hasText = post.content?.trim().length > 0;
+export default function PostCard({
+  post,
+  profile,
+  initialScore,
+  initialVote,
+  isFollowing,
+  onToggleFollow,
+}) {
+  const router = useRouter();
+  const { address, isConnected, openModal, callContract } = useWallet();
+  const { show: showToast } = useActionToast();
 
-  const [score, setScore] = useState(initialScore ?? null);
-  const [myVote, setMyVote] = useState(initialVote ?? '0'); // '+1' | '-1' | '0'
+  const author = (post.author || '').toLowerCase();
+  const isMe = address && address.toLowerCase() === author;
+  const displayName = profile?.name?.trim() || shortAddr(author);
+  const handle = '@' + (profile?.name
+    ? profile.name.toLowerCase().replace(/\s+/g, '')
+    : shortAddr(author).replace(/…/g, ''));
+
+  const [score, setScore] = useState(initialScore != null ? Number(initialScore) : 0);
+  const [myVote, setMyVote] = useState(initialVote || '0');
   const [busy, setBusy] = useState(false);
+  const [followBusy, setFollowBusy] = useState(false);
+  const [following, setFollowing] = useState(isFollowing || false);
 
-  // Lazy fetch if not provided up-front (e.g. permalink view).
-  useEffect(() => {
-    if (initialScore && initialVote) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const [s, v] = await Promise.all([
-          getScore(post.id),
-          connectedAddr ? getVote(connectedAddr, post.id) : Promise.resolve('0'),
-        ]);
-        if (cancelled) return;
-        if (initialScore == null) setScore(s);
-        if (initialVote == null) setMyVote(v);
-      } catch {}
-    })();
-    return () => { cancelled = true; };
-  }, [post.id, connectedAddr, initialScore, initialVote]);
+  const liked = myVote === '+1';
+  const authorUser = {
+    address: author,
+    name: profile?.name,
+    avatarUrl: profile?.avatarUrl,
+  };
 
-  async function vote(direction) {
+  const openProfile = () => router.push(`/u/${author}`);
+
+  async function like() {
     if (!isConnected) { openModal(); return; }
     if (busy) return;
+    const prevVote = myVote;
+    const prevScore = score;
+    if (liked) {
+      setMyVote('0');
+      setScore(score - 1);
+    } else {
+      setMyVote('+1');
+      setScore(score + (myVote === '-1' ? 2 : 1));
+    }
     setBusy(true);
     try {
-      const method = direction === '+1' ? 'upvote' : 'downvote';
       const res = await callContract({
         to: CONTRACTS.votes,
-        method,
+        method: 'upvote',
         args: [String(post.id)],
       });
       const receipt = await waitForReceipt(res.txHash);
-      if (receipt.status !== 'success') throw new Error('tx reverted');
-      // Re-read truth from chain
-      const [s, v] = await Promise.all([
-        getScore(post.id),
-        getVote(connectedAddr, post.id),
-      ]);
-      setScore(s);
-      setMyVote(v);
+      if (receipt.status !== 'success') throw new Error('reverted');
     } catch (err) {
-      console.warn('vote failed:', err.message);
+      setMyVote(prevVote);
+      setScore(prevScore);
+      showToast(err.message || 'Like failed');
     } finally {
       setBusy(false);
     }
   }
 
-  const scoreNum = score ? Number(score.score) : 0;
+  async function toggleFollow() {
+    if (!isConnected) { openModal(); return; }
+    if (followBusy || isMe) return;
+    const wasFollowing = following;
+    setFollowing(!wasFollowing);
+    setFollowBusy(true);
+    try {
+      const res = await callContract({
+        to: CONTRACTS.follow,
+        method: wasFollowing ? 'unfollow' : 'follow',
+        args: [author],
+      });
+      const receipt = await waitForReceipt(res.txHash);
+      if (receipt.status !== 'success') throw new Error('reverted');
+      onToggleFollow?.(author, !wasFollowing);
+      showToast(!wasFollowing ? `Following ${displayName}` : 'Unfollowed');
+    } catch (err) {
+      setFollowing(wasFollowing);
+      showToast(err.message || 'Follow failed');
+    } finally {
+      setFollowBusy(false);
+    }
+  }
 
   return (
-    <article className="border border-line bg-bg-1 hover:border-ink-3 transition-colors rounded-xl overflow-hidden flex">
-      {/* Vote rail */}
-      <div className="flex flex-col items-center justify-start gap-1 px-3 py-5 bg-bg-2 border-r border-line">
-        <VoteBtn
-          active={myVote === '+1'}
-          dir="up"
-          onClick={() => vote('+1')}
-          disabled={busy}
-        />
-        <span
-          className={`font-mono text-[13px] font-bold ${
-            scoreNum > 0 ? 'text-accent' : scoreNum < 0 ? 'text-red-400' : 'text-ink-2'
-          }`}
+    <article
+      style={{
+        background: 'var(--surface)',
+        border: '1px solid var(--border)',
+        borderRadius: 22,
+        padding: '14px 16px 12px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
+      }}
+    >
+      <header style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+        <button
+          onClick={openProfile}
+          style={{ border: 'none', background: 'transparent', padding: 0, cursor: 'pointer' }}
+          aria-label={`Open ${displayName}'s profile`}
         >
-          {scoreNum}
-        </span>
-        <VoteBtn
-          active={myVote === '-1'}
-          dir="down"
-          onClick={() => vote('-1')}
-          disabled={busy}
-        />
-      </div>
-
-      {/* Body */}
-      <div className="flex-1 min-w-0">
-        <header className="flex items-center gap-3 p-5 pb-3">
-          <MiniAvatar src={profile?.avatar} name={profile?.name} address={author} size={40} />
-          <div className="flex-1 min-w-0">
-            <Link href={`/u/${author}`} className="block group">
-              <div className="font-sans text-[15px] font-bold text-ink-0 group-hover:text-accent leading-tight">
-                {displayName || 'unnamed'}
-              </div>
-              <div className="font-mono text-[11px] text-ink-3 truncate">
-                {profile?.name ? shortAddr(author) : ''}
-              </div>
-            </Link>
+          <Avatar user={authorUser} size={42} />
+        </button>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+            <button
+              onClick={openProfile}
+              style={{
+                border: 'none',
+                background: 'transparent',
+                padding: 0,
+                cursor: 'pointer',
+                fontSize: 15,
+                fontWeight: 600,
+                color: 'var(--text-1)',
+                fontFamily: 'inherit',
+              }}
+            >
+              {displayName}
+            </button>
+            <span style={{ fontSize: 13, color: 'var(--text-3)' }}>· {timeAgo(post.ts)}</span>
           </div>
-          <Link
-            href={`/post/${post.id}`}
-            className="font-mono text-[11px] text-ink-3 hover:text-accent flex-shrink-0"
+          <div style={{ fontSize: 13, color: 'var(--text-2)' }}>{handle}</div>
+        </div>
+        {!isMe && (
+          <button
+            onClick={toggleFollow}
+            disabled={followBusy}
+            style={{
+              border: following ? '1px solid var(--border)' : 'none',
+              background: following ? 'var(--surface)' : 'var(--text-1)',
+              color: following ? 'var(--text-2)' : '#fff',
+              fontSize: 12.5,
+              fontWeight: 600,
+              padding: '6px 12px',
+              borderRadius: 999,
+              cursor: followBusy ? 'wait' : 'pointer',
+              fontFamily: 'inherit',
+              opacity: followBusy ? 0.7 : 1,
+            }}
           >
-            {timeAgo(post.ts)}
-          </Link>
-        </header>
-
-        {hasText && (
-          <div className="px-5 pb-3">
-            <p className="font-sans text-[15px] text-ink-1 whitespace-pre-wrap break-words leading-relaxed">
-              {post.content}
-            </p>
-          </div>
+            {following ? 'Following' : 'Follow'}
+          </button>
         )}
+      </header>
 
-        {hasImage && (
-          <Link href={`/post/${post.id}`} className="block">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={post.imageUrl}
-              alt={hasText ? post.content.slice(0, 80) : 'post image'}
-              className="w-full max-h-[600px] object-cover bg-bg-2 border-t border-line"
-              loading="lazy"
-            />
-          </Link>
-        )}
+      {post.content && (
+        <p
+          style={{
+            margin: 0,
+            fontSize: 15.5,
+            lineHeight: 1.5,
+            color: 'var(--text-1)',
+            textWrap: 'pretty',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+          }}
+        >
+          {post.content}
+        </p>
+      )}
+
+      {post.imageUrl && (
+        <PostImage url={post.imageUrl} alt="" height={post.content ? 220 : 280} />
+      )}
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
+        <ActionButton onClick={like} active={liked} accent="#e0345a" disabled={busy}>
+          <IconHeart filled={liked} />
+          <span>{fmtCount(score)}</span>
+        </ActionButton>
+        <ActionButton>
+          <IconComment />
+          <span>0</span>
+        </ActionButton>
+        <ActionButton
+          onClick={() => {
+            const url = typeof window !== 'undefined'
+              ? `${window.location.origin}/post/${post.id}`
+              : '';
+            if (url && navigator?.clipboard) {
+              navigator.clipboard.writeText(url).then(() => showToast('Link copied'));
+            }
+          }}
+        >
+          <IconShare />
+        </ActionButton>
       </div>
     </article>
   );
 }
 
-function VoteBtn({ active, dir, onClick, disabled }) {
-  const Icon = dir === 'up' ? ChevronUp : ChevronDown;
-  const activeClass = dir === 'up' ? 'text-accent' : 'text-red-400';
+function ActionButton({ children, onClick, active, accent, disabled }) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`p-1 rounded transition-colors ${
-        active ? activeClass : 'text-ink-3 hover:text-ink-1'
-      } disabled:opacity-50 disabled:cursor-not-allowed`}
-      aria-label={dir === 'up' ? 'upvote' : 'downvote'}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+        padding: '6px 10px',
+        borderRadius: 999,
+        border: 'none',
+        background: 'transparent',
+        cursor: disabled ? 'wait' : 'pointer',
+        color: active ? accent : 'var(--text-2)',
+        fontSize: 13.5,
+        fontWeight: 500,
+        fontFamily: 'inherit',
+        fontVariantNumeric: 'tabular-nums',
+        transition: 'color 160ms ease',
+      }}
     >
-      <Icon className="w-5 h-5" strokeWidth={2.5} />
+      {children}
     </button>
   );
 }

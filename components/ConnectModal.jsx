@@ -1,5 +1,7 @@
-// Connect modal — pick extension or 6-digit-code (bot) wallet path.
-// Keeps logic self-contained; talks to the wallet context via onConnected.
+// connect modal — pick extension or 6-digit-code (bot) wallet path.
+// keeps the connect-flow plumbing in here; the wallet context just
+// gets a callback when it's done.
+//   — milkie
 
 import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';

@@ -1,6 +1,7 @@
-// One toast. Self-dismissing on a timer, hover-pausable, manual-close
-// via X button. Accepts a render function so each lane can decorate
-// the activity differently.
+// one toast. auto-dismisses, pauses on hover, has an X for fast-close.
+// the body is a render prop so each lane can decorate the activity
+// differently without duplicating the timer + animation plumbing.
+//   — milkie
 
 import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';

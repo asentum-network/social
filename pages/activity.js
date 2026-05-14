@@ -59,9 +59,9 @@ export default function ActivityFeed() {
 
   return (
     <Layout>
-      <div className="max-w-3xl mx-auto px-4 py-10">
-        <h1 className="font-sans text-3xl font-bold mb-1">Activity</h1>
-        <p className="font-mono text-[12px] uppercase tracking-wider text-ink-3 mb-8">
+      <div className="max-w-3xl mx-auto px-4 py-6 sm:py-10">
+        <h1 className="font-sans text-display mb-1">Activity</h1>
+        <p className="font-mono text-micro uppercase text-ink-3 mb-6 sm:mb-8">
           Every on-chain event from the social network
         </p>
 
@@ -79,7 +79,7 @@ export default function ActivityFeed() {
           </div>
         ) : (
           <>
-            <div className="border border-line bg-bg-1 divide-y divide-line">
+            <div className="border border-line bg-bg-1 divide-y divide-line rounded-card overflow-hidden shadow-card">
               {items.map((a) => <Row key={a.id} activity={a} />)}
             </div>
             <div className="mt-4 flex items-center justify-between">
@@ -115,7 +115,7 @@ function Row({ activity }) {
   return (
     <Link
       href={`/activity/${activity.id}`}
-      className="grid grid-cols-[110px_1fr_auto] gap-3 items-center px-4 py-3 hover:bg-bg-2 transition-colors"
+      className="grid grid-cols-[80px_1fr_auto] sm:grid-cols-[110px_1fr_auto] gap-3 items-center px-4 py-3 hover:bg-bg-2 transition-colors"
     >
       <span className="font-mono text-[10px] uppercase tracking-wider text-accent">
         {typeBadge(activity.type)}

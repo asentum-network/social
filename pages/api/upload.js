@@ -1,17 +1,14 @@
-// Server-side Cloudinary upload.
+// server-side cloudinary upload.
 //
-// Accepts JSON: { dataUri, kind, address }
-//   dataUri: 'data:image/jpeg;base64,...' (browser-side FileReader output)
-//   kind:    'avatar' | 'post' | 'gallery'  → folder + transform preset
-//   address: 0x… of the connected wallet (used as folder + tag for organisation)
+// takes JSON { dataUri, kind, address } from the browser, posts to
+// cloudinary, returns the resulting URL. the URL is what gets stored
+// on-chain; the bytes themselves stay off-chain (see the case study
+// for the IPFS-vs-cloudinary discussion).
 //
-// Returns: { url, publicId, width, height, bytes, format }
-//
-// Why server-side: the CLOUDINARY_URL contains the API secret. Doing the
-// upload client-side would need either an unsigned preset (anyone can
-// upload anything) or a signed-upload signature endpoint. Direct
-// server-upload is simpler for v1 and we can swap to direct-to-cloudinary
-// later if file sizes get bigger.
+// it has to be server-side because CLOUDINARY_URL holds the API secret.
+// the alternative is an unsigned preset which means any random caller
+// can upload anything to our cloudinary, no thanks.
+//   — milkie
 
 import { v2 as cloudinary } from 'cloudinary';
 

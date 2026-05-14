@@ -1,21 +1,43 @@
-// Layout wrapper. The actual layout uses AppKit hooks (useAppKitAccount,
-// useDisconnect, etc.) which require AppKit to be initialized — that only
-// happens on the client. So we dynamic-import the real layout with
-// ssr:false to keep static pre-rendering happy.
+// Picks the right chrome based on viewport. Lazy-loads the chrome
+// components on the client so SSR doesn't choke on the wallet context
+// (which reads window / localStorage on mount).
+//   — milkie
 
 import dynamic from 'next/dynamic';
+import { useLayout } from '../lib/useLayout';
 
-const LayoutClient = dynamic(() => import('./LayoutClient'), {
+const MobileChrome = dynamic(() => import('./MobileChrome'), {
   ssr: false,
-  loading: () => (
-    <div className="min-h-screen bg-bg-0 flex items-center justify-center">
-      <div className="font-mono text-[11px] tracking-wider uppercase text-ink-3">
-        loading…
-      </div>
-    </div>
-  ),
+  loading: () => <Loading />,
+});
+const DesktopChrome = dynamic(() => import('./DesktopChrome'), {
+  ssr: false,
+  loading: () => <Loading />,
 });
 
-export default function Layout({ children }) {
-  return <LayoutClient>{children}</LayoutClient>;
+function Loading() {
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'var(--bg)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: 'var(--text-3)',
+        fontSize: 12,
+        letterSpacing: 1,
+        textTransform: 'uppercase',
+      }}
+    >
+      loading…
+    </div>
+  );
+}
+
+export default function Layout({ children, title, onBack }) {
+  const layout = useLayout();
+  const Chrome = layout === 'desktop' ? DesktopChrome : MobileChrome;
+  return <Chrome title={title} onBack={onBack}>{children}</Chrome>;
 }
