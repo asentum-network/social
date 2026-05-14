@@ -6,16 +6,19 @@
 // downvotes from getScore) — close enough to "likes" for the UI.
 //   — milkie
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Avatar from './Avatar';
 import PostImage from './PostImage';
-import { IconHeart, IconComment, IconShare } from './Icons';
+import { IconHeart, IconComment, IconShare, IconExternal } from './Icons';
 import { useWallet } from '../lib/wallet';
 import { useActionToast } from '../lib/actionToast';
 import { CONTRACTS } from '../lib/contracts';
 import { waitForReceipt } from '../lib/tx';
+import { fetchPostTx } from '../lib/indexer';
 import { fmtCount, timeAgo, shortAddr } from '../lib/format';
+
+const EXPLORER_BASE = 'https://explorer.asentum.com';
 
 export default function PostCard({
   post,
@@ -41,6 +44,20 @@ export default function PostCard({
   const [busy, setBusy] = useState(false);
   const [followBusy, setFollowBusy] = useState(false);
   const [following, setFollowing] = useState(isFollowing || false);
+  const [txHash, setTxHash] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!post?.id) return;
+    fetchPostTx(post.id)
+      .then((res) => { if (!cancelled && res?.txHash) setTxHash(res.txHash); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [post?.id]);
+
+  const explorerUrl = txHash
+    ? `${EXPLORER_BASE}/tx/${txHash}`
+    : (post.block ? `${EXPLORER_BASE}/block/${post.block}` : EXPLORER_BASE);
 
   const liked = myVote === '+1';
   const authorUser = {
@@ -209,33 +226,49 @@ export default function PostCard({
         >
           <IconShare />
         </ActionButton>
+        <ActionButton
+          as="a"
+          href={explorerUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={txHash ? 'View transaction on explorer' : 'View on explorer'}
+          aria-label="View on explorer"
+        >
+          <IconExternal size={17} />
+        </ActionButton>
       </div>
     </article>
   );
 }
 
-function ActionButton({ children, onClick, active, accent, disabled }) {
+function ActionButton({ children, onClick, active, accent, disabled, as, href, target, rel, title, ...rest }) {
+  const Tag = as || 'button';
+  const style = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    padding: '6px 10px',
+    borderRadius: 999,
+    border: 'none',
+    background: 'transparent',
+    cursor: disabled ? 'wait' : 'pointer',
+    color: active ? accent : 'var(--text-2)',
+    fontSize: 13.5,
+    fontWeight: 500,
+    fontFamily: 'inherit',
+    fontVariantNumeric: 'tabular-nums',
+    textDecoration: 'none',
+    transition: 'color 160ms ease',
+  };
+  if (Tag === 'a') {
+    return (
+      <a href={href} target={target} rel={rel} title={title} style={style} {...rest}>
+        {children}
+      </a>
+    );
+  }
   return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 6,
-        padding: '6px 10px',
-        borderRadius: 999,
-        border: 'none',
-        background: 'transparent',
-        cursor: disabled ? 'wait' : 'pointer',
-        color: active ? accent : 'var(--text-2)',
-        fontSize: 13.5,
-        fontWeight: 500,
-        fontFamily: 'inherit',
-        fontVariantNumeric: 'tabular-nums',
-        transition: 'color 160ms ease',
-      }}
-    >
+    <button onClick={onClick} disabled={disabled} title={title} style={style} {...rest}>
       {children}
     </button>
   );
