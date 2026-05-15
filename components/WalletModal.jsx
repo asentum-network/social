@@ -290,7 +290,7 @@ export default function WalletModal({ open, onClose, layout = 'mobile' }) {
         {view === 'code' && (
           <div style={{ paddingTop: 4, display: 'flex', flexDirection: 'column', gap: 12 }}>
             <p style={{ margin: 0, fontSize: 14, color: 'var(--text-2)', lineHeight: 1.5 }}>
-              Open <a href="https://t.me/asentum_wallet_bot" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>@asentum_wallet_bot</a>, tap <strong>🔗 Connect dapp</strong> in the menu, then send it the code below.
+              Open <a href="https://t.me/AsentumBot" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>@AsentumBot</a> and send it the code below — or tap <strong>🔗 Connect dapp</strong> in the menu.
             </p>
             <div
               style={{
