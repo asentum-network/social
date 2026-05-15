@@ -29,7 +29,7 @@ const PLATFORMS = [
   {
     id: 'telegram',
     name: 'Telegram',
-    desc: 'Pair with @asentum_wallet_bot using a 6-character code.',
+    desc: 'Pair with @AsentumBot using a 6-character code.',
     badge: null,
     status: 'live',
   },
