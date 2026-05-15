@@ -29,8 +29,13 @@ export default function PostCard({
   onToggleFollow,
 }) {
   const router = useRouter();
-  const { address, isConnected, openModal, callContract } = useWallet();
+  const { address, isConnected, openModal, callContract, method: walletMethod } = useWallet();
   const { show: showToast } = useActionToast();
+
+  const approvalToast = (label) => {
+    const where = walletMethod === 'bot' ? 'Telegram' : 'your wallet';
+    showToast(`Approve the ${label} in ${where}`);
+  };
 
   const author = (post.author || '').toLowerCase();
   const isMe = address && address.toLowerCase() === author;
@@ -104,6 +109,7 @@ export default function PostCard({
     const wasFollowing = following;
     setFollowing(!wasFollowing);
     setFollowBusy(true);
+    approvalToast(wasFollowing ? 'unfollow' : 'follow');
     try {
       const res = await callContract({
         to: CONTRACTS.follow,
