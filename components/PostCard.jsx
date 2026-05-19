@@ -13,7 +13,8 @@ import PostImage from './PostImage';
 import { IconHeart, IconComment, IconShare, IconExternal } from './Icons';
 import { useWallet } from '../lib/wallet';
 import { useActionToast } from '../lib/actionToast';
-import { CONTRACTS } from '../lib/contracts';
+import { CONTRACTS, isPremium, getCommentCount } from '../lib/contracts';
+import BlueCheck from './BlueCheck';
 import { waitForReceipt } from '../lib/tx';
 import { fetchPostTx } from '../lib/indexer';
 import { fmtCount, timeAgo, shortAddr } from '../lib/format';
@@ -50,6 +51,23 @@ export default function PostCard({
   const [followBusy, setFollowBusy] = useState(false);
   const [following, setFollowing] = useState(isFollowing || false);
   const [txHash, setTxHash] = useState(null);
+  const [authorPremium, setAuthorPremium] = useState(false);
+  const [commentCount, setCommentCount] = useState(0);
+
+  // Resolve premium + comment count once per post. Both are cheap view
+  // calls; if the indexer ever exposes a batched feed payload these
+  // can be hydrated upstream instead.
+  useEffect(() => {
+    if (!author) return;
+    let cancelled = false;
+    isPremium(author).then((p) => { if (!cancelled) setAuthorPremium(!!p); }).catch(() => {});
+    if (post?.id) {
+      getCommentCount(String(post.id))
+        .then((c) => { if (!cancelled) setCommentCount(Number(c) || 0); })
+        .catch(() => {});
+    }
+    return () => { cancelled = true; };
+  }, [author, post?.id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -161,9 +179,13 @@ export default function PostCard({
                 fontWeight: 600,
                 color: 'var(--text-1)',
                 fontFamily: 'inherit',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 0,
               }}
             >
               {displayName}
+              <BlueCheck premium={authorPremium} size={14} />
             </button>
             <span style={{ fontSize: 13, color: 'var(--text-3)' }}>· {timeAgo(post.ts)}</span>
           </div>
@@ -216,9 +238,11 @@ export default function PostCard({
           <IconHeart filled={liked} />
           <span>{fmtCount(score)}</span>
         </ActionButton>
-        <ActionButton>
+        <ActionButton
+          onClick={() => router.push(`/post/${post.id}`)}
+        >
           <IconComment />
-          <span>0</span>
+          <span>{fmtCount(commentCount)}</span>
         </ActionButton>
         <ActionButton
           onClick={() => {

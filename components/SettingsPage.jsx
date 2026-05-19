@@ -130,6 +130,33 @@ export default function SettingsPage() {
         Set how you appear across asentum. Stored on-chain in the Profile contract.
       </p>
 
+      {/* Premium link */}
+      <a
+        href="/premium"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          padding: '14px 16px',
+          background: 'linear-gradient(135deg, rgba(61,169,252,0.10), rgba(61,169,252,0.04))',
+          border: '1px solid rgba(61,169,252,0.35)',
+          borderRadius: 14,
+          color: 'var(--text-1)',
+          textDecoration: 'none',
+          marginBottom: 18,
+        }}
+      >
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+          <path d="M11 1.5l2.6 1.4 2.94-.5.5 2.94L19.44 8 18 10.5l1.44 2.5-2.4 1.66-.5 2.94-2.94-.5L11 18.5l-2.6-1.4-2.94.5-.5-2.94L2.56 13 4 10.5 2.56 8 4.96 6.34l.5-2.94 2.94.5L11 1.5z" fill="#3da9fc" stroke="#3da9fc"/>
+          <path d="M7.4 11.4l2.5 2.5 5-5.4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+        </svg>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14, fontWeight: 600 }}>Get Premium</div>
+          <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 2 }}>3 ASE / week — blue check on every post + comment.</div>
+        </div>
+        <div style={{ fontSize: 13, color: 'var(--text-3)' }}>→</div>
+      </a>
+
       {!isConnected ? (
         <div
           style={{

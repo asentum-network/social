@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Layout from '../../components/Layout';
 import PostCard from '../../components/PostCard';
+import CommentThread from '../../components/CommentThread';
 import { getPost, getProfile, getScore, getVote, isFollowing } from '../../lib/contracts';
 import { useWallet } from '../../lib/wallet';
 
@@ -84,13 +85,18 @@ export default function PostPermalink() {
           )}
 
           {post && (
-            <PostCard
-              post={post}
-              profile={profile}
-              initialScore={score}
-              initialVote={vote}
-              isFollowing={follows}
-            />
+            <>
+              <PostCard
+                post={post}
+                profile={profile}
+                initialScore={score}
+                initialVote={vote}
+                isFollowing={follows}
+              />
+              <div style={{ marginTop: 24 }}>
+                <CommentThread postId={post.id} />
+              </div>
+            </>
           )}
         </div>
       </Layout>
