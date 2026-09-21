@@ -1,5 +1,6 @@
 // Mobile chrome: header, scrollable body, bottom nav + FAB, modals.
-// Composer + WalletModal mounted here so they live above everything.
+// Composer mounted here so it lives above everything. The wallet connect
+// modal is mounted once by the wallet provider in _app.
 //   — milkie
 
 import { useState } from 'react';
@@ -7,13 +8,10 @@ import { useRouter } from 'next/router';
 import Header from './Header';
 import BottomNav from './BottomNav';
 import Composer from './Composer';
-import WalletModal from './WalletModal';
 import ActionToastView from './ActionToastView';
-import { useWallet } from '../lib/wallet';
 
 export default function MobileChrome({ children, title, onBack }) {
   const router = useRouter();
-  const { modalOpen, closeModal } = useWallet();
   const [composerOpen, setComposerOpen] = useState(false);
 
   // Default back behaviour: pop the route. Caller can override via prop.
@@ -42,12 +40,6 @@ export default function MobileChrome({ children, title, onBack }) {
       <Composer
         open={composerOpen}
         onClose={() => setComposerOpen(false)}
-        layout="mobile"
-      />
-
-      <WalletModal
-        open={modalOpen}
-        onClose={closeModal}
         layout="mobile"
       />
 

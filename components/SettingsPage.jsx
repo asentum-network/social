@@ -11,7 +11,7 @@ import { useWallet } from '../lib/wallet';
 import { useActionToast } from '../lib/actionToast';
 import { CONTRACTS, getProfile } from '../lib/contracts';
 import { waitForReceipt } from '../lib/tx';
-import { shortAddr } from '../lib/format';
+import { shortAddr, toAse1 } from '../lib/format';
 
 const NAME_MAX = 50;
 const BIO_MAX = 280;
@@ -292,7 +292,7 @@ export default function SettingsPage() {
                 display: 'block',
               }}
             >
-              {address}
+              {toAse1(address)}
             </code>
           </Field>
 

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { shortAddr } from '../lib/contracts';
+import { toAse1 } from '../lib/format';
 
 export default function ProfileHeader({
   address,
@@ -23,7 +24,7 @@ export default function ProfileHeader({
                 {profile?.name || shortAddr(address)}
               </h1>
               <div className="font-mono text-micro text-ink-3 mt-1 break-all">
-                {address}
+                {toAse1(address)}
               </div>
             </div>
             {!isOwn && onFollowClick && (

@@ -7,14 +7,13 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import WalletButton from './WalletButton';
 import Composer from './Composer';
-import WalletModal from './WalletModal';
 import ActionToastView from './ActionToastView';
 import { useWallet } from '../lib/wallet';
 import { IconHome, IconUser, IconActivity, IconSettings, IconPlus, IconBack } from './Icons';
 
 export default function DesktopChrome({ children, title, onBack }) {
   const router = useRouter();
-  const { address, modalOpen, closeModal } = useWallet();
+  const { address } = useWallet();
   const [composerOpen, setComposerOpen] = useState(false);
 
   const path = router.pathname;
@@ -178,12 +177,6 @@ export default function DesktopChrome({ children, title, onBack }) {
       <Composer
         open={composerOpen}
         onClose={() => setComposerOpen(false)}
-        layout="desktop"
-      />
-
-      <WalletModal
-        open={modalOpen}
-        onClose={closeModal}
         layout="desktop"
       />
 
