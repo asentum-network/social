@@ -81,7 +81,7 @@ function Avatar({ src, name, address }) {
   let hash = 0;
   for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) | 0;
   const hue = Math.abs(hash) % 360;
-  const initial = (name?.[0] || seed[2] || '?').toUpperCase();
+  const initial = (name?.[0] || (address ? toAse1(String(address).toLowerCase())[4] : '') || seed[0] || '?').toUpperCase();
   return (
     <div
       className={`${sizeClasses} flex items-center justify-center font-mono text-3xl font-bold`}

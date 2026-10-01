@@ -152,7 +152,7 @@ export default function SettingsPage() {
         </svg>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 14, fontWeight: 600 }}>Get Premium</div>
-          <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 2 }}>3 ASE / week — blue check on every post + comment.</div>
+          <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 2 }}>1000 ASE once. Blue check next to your name everywhere.</div>
         </div>
         <div style={{ fontSize: 13, color: 'var(--text-3)' }}>→</div>
       </a>

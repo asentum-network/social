@@ -9,6 +9,7 @@ import WalletButton from './WalletButton';
 import Composer from './Composer';
 import ActionToastView from './ActionToastView';
 import { useWallet } from '../lib/wallet';
+import { profileHref } from '../lib/format';
 import { IconHome, IconUser, IconActivity, IconSettings, IconPlus, IconBack } from './Icons';
 
 export default function DesktopChrome({ children, title, onBack }) {
@@ -24,7 +25,7 @@ export default function DesktopChrome({ children, title, onBack }) {
   const handleBack = onBack || (() => router.back());
 
   const goProfile = () => {
-    if (address) router.push(`/u/${address.toLowerCase()}`);
+    if (address) router.push(profileHref(address));
     else router.push('/u/me');
   };
 

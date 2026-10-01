@@ -15,6 +15,7 @@ import Toast from './Toast';
 import { useWallet } from '../lib/wallet';
 import { subscribe } from '../lib/activityStream';
 import { shortAddr } from '../lib/contracts';
+import { profileHref } from '../lib/format';
 
 const MAX_VISIBLE = 5;
 const OWN_DURATION_MS = 8000;
@@ -146,7 +147,7 @@ function labelFor(a) {
 function AddrLink({ addr }) {
   const a = (addr || '').toLowerCase();
   return (
-    <Link href={`/u/${a}`} className="text-accent underline-offset-2 hover:underline">
+    <Link href={profileHref(a)} className="text-accent underline-offset-2 hover:underline">
       {shortAddr(a)}
     </Link>
   );

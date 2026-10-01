@@ -9,6 +9,7 @@ import {
   timeAgo,
 } from '@/lib/contracts';
 import { useWallet } from '@/lib/wallet';
+import { profileHref } from '@/lib/format';
 import BlueCheck from './BlueCheck';
 import Avatar from './Avatar';
 
@@ -135,7 +136,7 @@ function CommentNode({ comment, tree, depth, profiles, premium, postId, me, call
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
           <Avatar address={author} url={profile?.avatarUrl} size={26} />
-          <Link href={`/u/${author}`} style={{ color: 'var(--text-1, #FFFFFF)', textDecoration: 'none', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 0 }}>
+          <Link href={profileHref(author)} style={{ color: 'var(--text-1, #FFFFFF)', textDecoration: 'none', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 0 }}>
             {name}
             <BlueCheck premium={isPremium} size={13} />
           </Link>

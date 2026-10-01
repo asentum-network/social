@@ -4,6 +4,7 @@
 
 import { useRouter } from 'next/router';
 import { useWallet } from '../lib/wallet';
+import { profileHref } from '../lib/format';
 import {
   IconHome, IconUser, IconActivity, IconSettings, IconPlus,
 } from './Icons';
@@ -18,7 +19,7 @@ export default function BottomNav({ onCompose }) {
   const isSettings = path === '/settings';
 
   const goProfile = () => {
-    if (address) router.push(`/u/${address.toLowerCase()}`);
+    if (address) router.push(profileHref(address));
     else router.push('/u/me');
   };
 

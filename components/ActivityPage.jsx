@@ -5,13 +5,14 @@
 //   — milkie
 
 import { useCallback, useEffect, useState } from 'react';
+import BlueCheck from './BlueCheck';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Avatar from './Avatar';
 import { fetchActivities } from '../lib/indexer';
 import { subscribe } from '../lib/activityStream';
 import { getProfile } from '../lib/contracts';
-import { fmtCount, shortAddr, timeAgo } from '../lib/format';
+import { fmtCount, profileHref, shortAddr, timeAgo } from '../lib/format';
 
 const PAGE_SIZE = 50;
 
@@ -181,14 +182,14 @@ function ActivityRow({ activity, profiles, router }) {
   const targetProfile = target ? profiles[target] : null;
   const targetName = targetProfile?.name?.trim() || (target ? shortAddr(target) : '');
 
-  const description = describeActivity(activity, actorName, targetName);
+  const description = describeActivity(activity, actorName, targetName, actor, target);
   const tsSec = Math.floor(Number(activity.ts) / 1000);
 
   const onClick = () => {
     if (activity.type === 'post.created' && activity.data?.postId) {
       router.push(`/post/${activity.data.postId}`);
     } else if (activity.type === 'profile.created' || activity.type === 'follow.created') {
-      router.push(`/u/${actor}`);
+      router.push(profileHref(actor));
     } else {
       router.push(`/activity/${activity.id}`);
     }
@@ -228,9 +229,9 @@ function ActivityRow({ activity, profiles, router }) {
   );
 }
 
-function describeActivity(activity, actorName, targetName) {
+function describeActivity(activity, actorName, targetName, actor, target) {
   const a = (
-    <strong style={{ fontWeight: 600 }}>{actorName}</strong>
+    <strong style={{ fontWeight: 600 }}>{actorName}<BlueCheck address={actor} size={12} /></strong>
   );
   switch (activity.type) {
     case 'profile.created':
@@ -241,11 +242,11 @@ function describeActivity(activity, actorName, targetName) {
       return <>{a} posted{activity.data?.hasImage ? ' an image' : ''}</>;
     case 'follow.created':
       return (
-        <>{a} followed <strong style={{ fontWeight: 600 }}>{targetName}</strong></>
+        <>{a} followed <strong style={{ fontWeight: 600 }}>{targetName}<BlueCheck address={target} size={12} /></strong></>
       );
     case 'follow.removed':
       return (
-        <>{a} unfollowed <strong style={{ fontWeight: 600 }}>{targetName}</strong></>
+        <>{a} unfollowed <strong style={{ fontWeight: 600 }}>{targetName}<BlueCheck address={target} size={12} /></strong></>
       );
     case 'vote.up':
       return <>{a} liked a post</>;

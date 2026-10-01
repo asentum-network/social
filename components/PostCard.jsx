@@ -17,7 +17,7 @@ import { CONTRACTS, isPremium, getCommentCount } from '../lib/contracts';
 import BlueCheck from './BlueCheck';
 import { waitForReceipt } from '../lib/tx';
 import { fetchPostTx } from '../lib/indexer';
-import { fmtCount, timeAgo, shortAddr } from '../lib/format';
+import { fmtCount, timeAgo, shortAddr, profileHref } from '../lib/format';
 
 const EXPLORER_BASE = 'https://explorer.asentum.com';
 
@@ -89,7 +89,7 @@ export default function PostCard({
     avatarUrl: profile?.avatarUrl,
   };
 
-  const openProfile = () => router.push(`/u/${author}`);
+  const openProfile = () => router.push(profileHref(author));
 
   async function like() {
     if (!isConnected) { openModal(); return; }

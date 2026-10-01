@@ -35,8 +35,8 @@ export default function BlueCheck({ address, premium, size = 14, className = '' 
     <span
       className={'inline-flex items-center justify-center align-middle ' + className}
       style={{ marginLeft: 4, lineHeight: 0 }}
-      title="Premium subscriber"
-      aria-label="Premium subscriber"
+      title="Premium"
+      aria-label="Premium"
     >
       <svg
         width={size}

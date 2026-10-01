@@ -20,6 +20,7 @@ import { fmtCount, shortAddr } from '../lib/format';
 import { avatarTone } from '../lib/avatar';
 import Avatar from './Avatar';
 import PostCard from './PostCard';
+import BlueCheck from './BlueCheck';
 
 export default function ProfilePage({ address: paramAddress }) {
   const lower = (paramAddress || '').toLowerCase();
@@ -187,6 +188,7 @@ export default function ProfilePage({ address: paramAddress }) {
             }}
           >
             {displayName}
+            <BlueCheck address={lower} size={18} />
           </h1>
           <div style={{ fontSize: 14, color: 'var(--text-2)' }}>{handle}</div>
         </div>

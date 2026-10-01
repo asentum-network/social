@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Layout from '../../../components/Layout';
+import BlueCheck from '../../../components/BlueCheck';
 import { IconImage, IconPlus } from '../../../components/Icons';
 import { useWallet } from '../../../lib/wallet';
 import { useActionToast } from '../../../lib/actionToast';
@@ -12,7 +13,7 @@ import {
   getUserGallery,
 } from '../../../lib/contracts';
 import { waitForReceipt } from '../../../lib/tx';
-import { shortAddr } from '../../../lib/format';
+import { profileHref, resolveAddrSlug, shortAddr } from '../../../lib/format';
 
 const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -20,7 +21,13 @@ const CAPTION_MAX = 280;
 
 export default function GalleryPage() {
   const router = useRouter();
-  const addrParam = typeof router.query.addr === 'string' ? router.query.addr.toLowerCase() : '';
+  // The URL carries the ase1 address; contracts want the internal hex. An old
+  // 0x link is redirected to its ase1 URL.
+  const parsed = resolveAddrSlug(typeof router.query.addr === 'string' ? router.query.addr : '');
+  const addrParam = parsed.legacyHex ? '' : parsed.hex;
+  useEffect(() => {
+    if (parsed.legacyHex && parsed.hex) router.replace(`${profileHref(parsed.hex)}/gallery`);
+  }, [parsed.legacyHex, parsed.hex, router]);
   const { address: me, isConnected, openModal, callContract } = useWallet();
   const { show: showToast } = useActionToast();
   const isOwn = isConnected && me && me.toLowerCase() === addrParam;
@@ -115,7 +122,7 @@ export default function GalleryPage() {
       <Head>
         <title>{displayName}'s gallery · asentum</title>
       </Head>
-      <Layout title="Gallery" onBack={() => router.push(`/u/${addrParam}`)}>
+      <Layout title="Gallery" onBack={() => router.push(profileHref(addrParam))}>
         <div style={{ padding: '20px 14px 140px', maxWidth: 720, margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 18 }}>
             <h1
@@ -128,10 +135,12 @@ export default function GalleryPage() {
                 fontFamily: 'var(--font-display)',
               }}
             >
-              {displayName}'s gallery
+              {displayName}
+              <BlueCheck address={addrParam} size={16} />
+              's gallery
             </h1>
             <a
-              href={`/u/${addrParam}`}
+              href={profileHref(addrParam)}
               style={{ fontSize: 13, color: 'var(--text-2)', fontWeight: 500 }}
             >
               View profile →

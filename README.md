@@ -19,12 +19,16 @@ The contracts and indexer live in the [AsentumChain monorepo](https://github.com
 ## contract addresses (testnet)
 
 ```
-AsentumProfile  0xf286cad273e10b7af591e34b348c6213c92ade55
-AsentumPosts    0x4541f76e1290911e5ef478f6b02e50765cdfbd5a
-AsentumFollow   0x2a47f568c53941d370f6d8581232c9c0b342e09c
-AsentumGallery  0x345cc47958d1f8d323f8751ffe7292023f9d0cac
-AsentumVotes    0x5bf5af00a0cb2386f558ced2626e47e776e6e03a
+AsentumProfile          ase1wzpl065lyld6h8kthew7jc3mudgu5wtgfdwawd
+AsentumPosts            ase160qf2uyeaw4exdl9krxe5upah535mxksdcvw7p
+AsentumFollow           ase1mzcyhrckdx3xz8ede73yklkx2tx4l5alvzvgw3
+AsentumGallery          ase18phq0ez264q9796zq87zkre9l76w5tl9e4cgse
+AsentumVotes            ase1htys39ghn5lsgqesn627jw09v68zx6nfdpesfn
+AsentumComments         ase1rrs27lyrgwrj9rrdfkvwrstpxyt6dz8fuxnc95
+AsentumPremiumLifetime  ase1nnljsc7x7c3n882fprhxn65kazme0q943ewcfv
 ```
+
+Look any of them up at `https://explorer.asentum.com/address/<ase1 address>`. The canonical list is `CONTRACTS` in `lib/contracts.js`.
 
 ## local dev
 

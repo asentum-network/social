@@ -3,10 +3,11 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Layout from '../../components/Layout';
 import Avatar from '../../components/Avatar';
+import BlueCheck from '../../components/BlueCheck';
 import { IconExternal } from '../../components/Icons';
 import { fetchActivity } from '../../lib/indexer';
 import { getProfile, RPC_URL } from '../../lib/contracts';
-import { shortAddr, timeAgo } from '../../lib/format';
+import { profileHref, shortAddr, timeAgo, toAse1 } from '../../lib/format';
 
 export default function ActivityDetail() {
   const router = useRouter();
@@ -97,6 +98,7 @@ export default function ActivityDetail() {
                 <div>
                   <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--text-1)' }}>
                     {actorName}
+                    <BlueCheck address={actor} size={13} />
                   </div>
                   <div style={{ fontSize: 13, color: 'var(--text-2)' }}>
                     {humanType(activity.type)} · {timeAgo(tsSec)}
@@ -149,7 +151,7 @@ export default function ActivityDetail() {
                         overflow: 'auto',
                       }}
                     >
-                      {JSON.stringify(activity.data, null, 2)}
+                      {JSON.stringify(activity.data, (k, v) => (typeof v === 'string' ? toAse1(v) : v), 2)}
                     </pre>
                   )}
                 />
@@ -176,7 +178,7 @@ function Row({ label, value }) {
 function AddressLink({ addr, name }) {
   return (
     <a
-      href={`/u/${addr}`}
+      href={profileHref(addr)}
       style={{
         color: 'var(--accent)',
         fontFamily: name ? 'inherit' : 'ui-monospace, "SF Mono", Menlo, monospace',

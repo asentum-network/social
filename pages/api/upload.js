@@ -11,6 +11,7 @@
 //   — milkie
 
 import { v2 as cloudinary } from 'cloudinary';
+import { fromAse1 } from '../../lib/format';
 
 // Auto-configures from CLOUDINARY_URL env var.
 cloudinary.config({ secure: true });
@@ -66,13 +67,19 @@ export default async function handler(req, res) {
     res.status(400).json({ error: `kind must be one of: ${Object.keys(KINDS).join(', ')}` });
     return;
   }
-  if (typeof address !== 'string' || !/^0x[0-9a-fA-F]{40}$/.test(address)) {
-    res.status(400).json({ error: 'address must be a 0x-prefixed 20-byte hex' });
+  // The app sends the connected wallet's address. Accept the ase1 form (what
+  // people see) and the internal hex the wallet context carries; storage
+  // folders stay keyed by the hex so existing uploads keep their paths.
+  const hexAddr = typeof address === 'string'
+    ? (fromAse1(address) || (/^0x[0-9a-fA-F]{40}$/.test(address) ? address : null))
+    : null;
+  if (!hexAddr) {
+    res.status(400).json({ error: 'Connect a wallet with a valid ase1 address and try again.' });
     return;
   }
 
   const cfg = KINDS[kind];
-  const lowAddr = address.toLowerCase();
+  const lowAddr = hexAddr.toLowerCase();
 
   try {
     const result = await cloudinary.uploader.upload(dataUri, {

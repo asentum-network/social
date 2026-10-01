@@ -4,6 +4,8 @@
 // wallets need to look different.
 //   — milkie
 
+import { toAse1 } from '../lib/format';
+
 export default function MiniAvatar({ src, name, address, size = 36 }) {
   if (src) {
     // eslint-disable-next-line @next/next/no-img-element
@@ -20,7 +22,7 @@ export default function MiniAvatar({ src, name, address, size = 36 }) {
   let hash = 0;
   for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) | 0;
   const hue = Math.abs(hash) % 360;
-  const initial = (name?.[0] || seed[2] || '?').toUpperCase();
+  const initial = (name?.[0] || (address ? toAse1(String(address).toLowerCase())[4] : '') || seed[0] || '?').toUpperCase();
   return (
     <div
       className="rounded-full border border-line flex items-center justify-center font-mono font-bold flex-shrink-0"

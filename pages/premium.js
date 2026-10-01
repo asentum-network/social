@@ -1,10 +1,10 @@
-// social.asentum.com/premium — get-premium subscription page.
+// social.asentum.com/premium: buy the blue check.
 //
-// Two tiers: 3 ASE/wk or 10 ASE/mo. User signs ONCE — the contract
-// holds a deposit balance and cron-fires the recurring debit. Premium
-// status drops the moment the deposit can't cover the next charge.
-//
-// Backed by AsentumPremium at 0xa298d3ba8ab21a061a247d95dc383cbbe006ee85.
+// 1000 ASE, one time (AsentumPremiumLifetime, since 2026-09-25). The fee goes
+// straight to the merchant; nothing is held back and nothing is charged
+// later. The old weekly/monthly subscription (AsentumPremium) takes no new
+// sign-ups; anyone still on it keeps the check while it runs and can cancel
+// here for a refund of the remaining deposit.
 
 import React, { useEffect, useState } from 'react';
 import Head from 'next/head';
@@ -12,9 +12,11 @@ import Link from 'next/link';
 import { useWallet } from '@/lib/wallet';
 import {
   CONTRACTS,
+  PREMIUM_PRICE_ASE,
+  forgetPremium,
+  getLifetimeMembership,
   getSubscription,
-  getPremiumTiers,
-  isPremium,
+  hasLifetimePremium,
 } from '@/lib/contracts';
 import BlueCheck from '@/components/BlueCheck';
 
@@ -22,44 +24,45 @@ const ONE_ASE = 1_000_000_000_000_000_000n;
 
 export default function PremiumPage() {
   const { address, callContract, connect } = useWallet();
-  const [tiers, setTiers] = useState(null);
-  const [sub, setSub] = useState(null);
-  const [premium, setPremium] = useState(false);
+  const [lifetime, setLifetime] = useState(null); // membership record or null
+  const [legacy, setLegacy] = useState(null); // old subscription record or null
+  const [checked, setChecked] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [done, setDone] = useState(null);
-
-  // Load tier prices + the user's current subscription state.
-  useEffect(() => {
-    let alive = true;
-    getPremiumTiers().then((t) => alive && setTiers(t));
-    return () => { alive = false; };
-  }, []);
 
   useEffect(() => {
     if (!address) return;
     let alive = true;
     (async () => {
-      const s = await getSubscription(address);
-      const p = await isPremium(address);
-      if (alive) { setSub(s); setPremium(p); }
+      const [m, s] = await Promise.all([
+        getLifetimeMembership(address).catch(() => null),
+        getSubscription(address).catch(() => null),
+      ]);
+      if (alive) { setLifetime(m); setLegacy(s); setChecked(true); }
     })();
     return () => { alive = false; };
   }, [address, done]);
 
-  async function subscribe(tierId, depositAse) {
+  async function buy() {
     setError(null);
     setLoading(true);
     try {
-      const valueWei = (BigInt(depositAse) * ONE_ASE).toString();
       const res = await callContract({
-        to: CONTRACTS.premium,
-        method: 'subscribe',
-        args: [tierId],
-        value: valueWei,
+        to: CONTRACTS.premiumLifetime,
+        method: 'buy',
+        args: [],
+        value: (BigInt(PREMIUM_PRICE_ASE) * ONE_ASE).toString(),
         gasLimit: '2000000',
       });
-      setDone({ kind: 'subscribed', tx: res?.txHash });
+      // The purchase lands a block or two later; wait for it so the page and
+      // every blue check in this tab flip as soon as it is on chain.
+      for (let i = 0; i < 20; i++) {
+        if (await hasLifetimePremium(address).catch(() => false)) break;
+        await new Promise((r) => setTimeout(r, 1500));
+      }
+      forgetPremium(address);
+      setDone({ kind: 'bought', tx: res?.txHash });
     } catch (e) {
       setError(e.message || String(e));
     } finally {
@@ -67,7 +70,7 @@ export default function PremiumPage() {
     }
   }
 
-  async function cancel() {
+  async function cancelLegacy() {
     setError(null);
     setLoading(true);
     try {
@@ -78,27 +81,8 @@ export default function PremiumPage() {
         value: '0',
         gasLimit: '2000000',
       });
+      forgetPremium(address);
       setDone({ kind: 'cancelled', tx: res?.txHash });
-    } catch (e) {
-      setError(e.message || String(e));
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function topUp(addAse) {
-    setError(null);
-    setLoading(true);
-    try {
-      const valueWei = (BigInt(addAse) * ONE_ASE).toString();
-      const res = await callContract({
-        to: CONTRACTS.premium,
-        method: 'topUp',
-        args: [],
-        value: valueWei,
-        gasLimit: '2000000',
-      });
-      setDone({ kind: 'topped-up', tx: res?.txHash });
     } catch (e) {
       setError(e.message || String(e));
     } finally {
@@ -119,7 +103,7 @@ export default function PremiumPage() {
     <>
       <Head>
         <title>Premium — Asentum Social</title>
-        <meta name="description" content="Subscribe to Premium on social.asentum.com. Pay 3 ASE/week or 10 ASE/month. Get the blue check. Cron-fired recurring billing — no card-on-file, no Stripe." />
+        <meta name="description" content="Get Premium on social.asentum.com: 1000 ASE, one time. The blue check next to your name on posts, comments, your profile and activity." />
       </Head>
 
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '40px 24px 80px' }}>
@@ -132,52 +116,54 @@ export default function PremiumPage() {
           <BlueCheck premium={true} size={28} />
         </h1>
         <p style={{ color: 'var(--ink-2, #7A7A7A)', fontSize: 16, lineHeight: 1.5, marginBottom: 32 }}>
-          Subscribe once. Get the blue check next to your name wherever it appears.
-          Billing happens on-chain — your deposit covers the next charge, the chain
-          itself fires the recurring debit on schedule. Cancel any time and get the
-          remainder back.
+          Pay {PREMIUM_PRICE_ASE.toLocaleString()} ASE once and keep the blue check for good. It shows next
+          to your name everywhere it appears: your posts, your comments, your profile and the activity feed.
+          No subscription, nothing to renew.
         </p>
 
         {!address && (
           <div style={{ padding: 20, border: '1px solid var(--border, #222)', borderRadius: 12, marginBottom: 24 }}>
             <div style={{ fontSize: 14, marginBottom: 12, color: 'var(--ink-1, #BABABA)' }}>
-              Connect a wallet to subscribe.
+              Connect a wallet to get Premium.
             </div>
             <button onClick={connect} style={btnPrimary}>Connect wallet</button>
           </div>
         )}
 
-        {address && premium && sub && (
-          <ActiveSubscription
-            sub={sub}
-            fmtAse={fmtAse}
-            onCancel={cancel}
-            onTopUp={topUp}
-            loading={loading}
-          />
+        {address && checked && lifetime && (
+          <div style={{ padding: 24, border: '1px solid rgba(127,212,168,0.4)', borderRadius: 12, background: 'rgba(127,212,168,0.05)', marginBottom: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <span style={{ fontSize: 11, letterSpacing: 1.5, color: '#7fd4a8', fontWeight: 600 }}>YOU HAVE PREMIUM</span>
+              <BlueCheck premium={true} size={16} />
+            </div>
+            <div style={{ fontSize: 14, color: 'var(--ink-1, #BABABA)' }}>
+              Since {new Date(Number(lifetime.paidAt) * 1000).toLocaleDateString()}. It never expires.
+            </div>
+          </div>
         )}
 
-        {address && !premium && tiers && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
-            <TierCard
-              tag="WEEKLY"
-              price="3 ASE"
-              cadence="every 7 days"
-              defaultDeposit={3}
-              hint="One week upfront. Top up anytime."
-              onSubscribe={(deposit) => subscribe('w', deposit)}
-              loading={loading}
-            />
-            <TierCard
-              tag="MONTHLY"
-              price="10 ASE"
-              cadence="every 30 days"
-              defaultDeposit={10}
-              hint="Save 30% vs weekly. Best value."
-              accent
-              onSubscribe={(deposit) => subscribe('m', deposit)}
-              loading={loading}
-            />
+        {address && checked && !lifetime && (
+          <div style={{ border: '1px solid rgba(61,169,252,0.4)', borderRadius: 12, padding: 24, background: 'rgba(61,169,252,0.04)', marginBottom: 24 }}>
+            <div style={{ fontSize: 10, letterSpacing: 1.5, fontWeight: 600, color: '#3da9fc', marginBottom: 16 }}>LIFETIME</div>
+            <div style={{ fontSize: 28, fontWeight: 700, marginBottom: 4 }}>{PREMIUM_PRICE_ASE.toLocaleString()} ASE</div>
+            <div style={{ fontSize: 12, color: 'var(--ink-2, #7A7A7A)', marginBottom: 20 }}>one time, yours for good</div>
+            <button onClick={buy} disabled={loading} style={btnPrimary}>
+              {loading ? 'Confirming…' : `Get Premium for ${PREMIUM_PRICE_ASE.toLocaleString()} ASE`}
+            </button>
+          </div>
+        )}
+
+        {address && checked && legacy && (
+          <div style={{ padding: 20, border: '1px solid var(--border, #222)', borderRadius: 12, marginBottom: 24 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>Your old subscription</div>
+            <div style={{ fontSize: 13, color: 'var(--ink-2, #7A7A7A)', lineHeight: 1.5, marginBottom: 12 }}>
+              You are on the old {legacy.tier === 'w' ? '3 ASE / week' : '10 ASE / month'} plan with{' '}
+              {fmtAse(legacy.balance)} ASE deposited. It keeps your check while it runs, and it can no longer
+              be started or topped up. Cancel it any time to get the remaining deposit back.
+            </div>
+            <button onClick={cancelLegacy} disabled={loading} style={{ ...btnDanger, width: '100%' }}>
+              {loading ? 'Confirming…' : 'Cancel old subscription & refund deposit'}
+            </button>
           </div>
         )}
 
@@ -189,128 +175,12 @@ export default function PremiumPage() {
 
         {done && (
           <div style={{ marginTop: 24, padding: 12, background: 'rgba(127,212,168,0.12)', border: '1px solid rgba(127,212,168,0.4)', borderRadius: 8, color: '#7fd4a8', fontSize: 13 }}>
-            ✓ {done.kind} — tx {done.tx ? done.tx.slice(0, 14) + '…' : 'pending'}
+            {done.kind === 'bought' ? '✓ Premium is yours' : '✓ Old subscription cancelled and refunded'}
+            {done.tx ? ` · tx ${done.tx.slice(0, 14)}…` : ''}
           </div>
         )}
-
-        <details style={{ marginTop: 48, fontSize: 13, color: 'var(--ink-2, #7A7A7A)' }}>
-          <summary style={{ cursor: 'pointer', marginBottom: 8 }}>How does it work?</summary>
-          <div style={{ lineHeight: 1.6 }}>
-            <p style={{ marginTop: 8 }}>
-              When you subscribe, your ASE deposit goes into the{' '}
-              <code style={{ background: '#161616', padding: '1px 4px', borderRadius: 3 }}>AsentumPremium</code>{' '}
-              contract. The chain&apos;s built-in cron registry fires a charge function every
-              day. On your next billing period, the contract debits your deposit and sends
-              the charge to the merchant address. Status drops the moment your deposit
-              can&apos;t cover the next charge.
-            </p>
-            <p style={{ marginTop: 12 }}>
-              No card on file. No Stripe. No off-chain keeper.{' '}
-              <Link href="/use-cases/subscriptions" style={{ color: '#7fd4a8' }}>
-                How on-chain subscriptions work →
-              </Link>
-            </p>
-          </div>
-        </details>
       </div>
     </>
-  );
-}
-
-function TierCard({ tag, price, cadence, defaultDeposit, hint, accent, onSubscribe, loading }) {
-  const [deposit, setDeposit] = useState(defaultDeposit);
-  return (
-    <div
-      style={{
-        border: '1px solid ' + (accent ? 'rgba(61,169,252,0.4)' : 'var(--border, #222)'),
-        borderRadius: 12,
-        padding: 24,
-        background: accent ? 'rgba(61,169,252,0.04)' : 'transparent',
-      }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <span
-          style={{
-            fontSize: 10, letterSpacing: 1.5, fontWeight: 600,
-            color: accent ? '#3da9fc' : 'var(--ink-2, #7A7A7A)',
-          }}
-        >
-          {tag}
-        </span>
-        {accent && <span style={{ fontSize: 10, color: '#3da9fc' }}>★ best value</span>}
-      </div>
-      <div style={{ fontSize: 28, fontWeight: 700, marginBottom: 4 }}>{price}</div>
-      <div style={{ fontSize: 12, color: 'var(--ink-2, #7A7A7A)', marginBottom: 20 }}>{cadence}</div>
-      <div style={{ fontSize: 11, color: 'var(--ink-2, #7A7A7A)', marginBottom: 8 }}>Initial deposit (ASE)</div>
-      <input
-        type="number"
-        min={defaultDeposit}
-        value={deposit}
-        onChange={(e) => setDeposit(Math.max(defaultDeposit, parseInt(e.target.value, 10) || defaultDeposit))}
-        style={{
-          width: '100%', padding: '10px 12px', background: '#0E0E0E',
-          border: '1px solid var(--border, #222)', borderRadius: 8, color: 'white',
-          fontSize: 14, marginBottom: 12,
-        }}
-      />
-      <div style={{ fontSize: 10, color: 'var(--ink-2, #5A5A5A)', marginBottom: 16 }}>{hint}</div>
-      <button
-        onClick={() => onSubscribe(deposit)}
-        disabled={loading}
-        style={accent ? btnPrimary : btnSecondary}
-      >
-        {loading ? 'Confirming…' : `Subscribe — ${deposit} ASE`}
-      </button>
-    </div>
-  );
-}
-
-function ActiveSubscription({ sub, fmtAse, onCancel, onTopUp, loading }) {
-  const [topUpAmount, setTopUpAmount] = useState(3);
-  const nextChargeDate = new Date(Number(sub.nextCharge) * 1000).toLocaleString();
-  return (
-    <div style={{ padding: 24, border: '1px solid rgba(127,212,168,0.4)', borderRadius: 12, background: 'rgba(127,212,168,0.05)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-        <span style={{ fontSize: 11, letterSpacing: 1.5, color: '#7fd4a8', fontWeight: 600 }}>ACTIVE</span>
-        <BlueCheck premium={true} size={16} />
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24, fontSize: 14 }}>
-        <div>
-          <div style={{ fontSize: 10, color: 'var(--ink-2, #7A7A7A)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Tier</div>
-          <div style={{ fontWeight: 600 }}>{sub.tier === 'w' ? '3 ASE / week' : '10 ASE / month'}</div>
-        </div>
-        <div>
-          <div style={{ fontSize: 10, color: 'var(--ink-2, #7A7A7A)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Deposit balance</div>
-          <div style={{ fontWeight: 600 }}>{fmtAse(sub.balance)} ASE</div>
-        </div>
-        <div>
-          <div style={{ fontSize: 10, color: 'var(--ink-2, #7A7A7A)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Next charge</div>
-          <div style={{ fontWeight: 600, fontSize: 13 }}>{nextChargeDate}</div>
-        </div>
-        <div>
-          <div style={{ fontSize: 10, color: 'var(--ink-2, #7A7A7A)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Next amount</div>
-          <div style={{ fontWeight: 600 }}>{fmtAse(sub.amount)} ASE</div>
-        </div>
-      </div>
-
-      <div style={{ borderTop: '1px solid var(--border, #222)', paddingTop: 16, marginBottom: 16 }}>
-        <div style={{ fontSize: 11, color: 'var(--ink-2, #7A7A7A)', marginBottom: 8 }}>Top up (ASE)</div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <input
-            type="number"
-            min={1}
-            value={topUpAmount}
-            onChange={(e) => setTopUpAmount(parseInt(e.target.value, 10) || 1)}
-            style={{ flex: 1, padding: '10px 12px', background: '#0E0E0E', border: '1px solid var(--border, #222)', borderRadius: 8, color: 'white', fontSize: 14 }}
-          />
-          <button onClick={() => onTopUp(topUpAmount)} disabled={loading} style={btnSecondary}>Top up</button>
-        </div>
-      </div>
-
-      <button onClick={onCancel} disabled={loading} style={{ ...btnDanger, width: '100%' }}>
-        {loading ? 'Confirming…' : 'Cancel & refund remaining deposit'}
-      </button>
-    </div>
   );
 }
 
@@ -318,11 +188,6 @@ const btnPrimary = {
   width: '100%', padding: '12px 16px', background: '#3da9fc',
   border: 'none', borderRadius: 8, color: 'white', fontSize: 14,
   fontWeight: 600, cursor: 'pointer',
-};
-const btnSecondary = {
-  padding: '10px 16px', background: 'transparent',
-  border: '1px solid var(--border, #333)', borderRadius: 8, color: 'white',
-  fontSize: 13, fontWeight: 500, cursor: 'pointer',
 };
 const btnDanger = {
   padding: '10px 16px', background: 'transparent',

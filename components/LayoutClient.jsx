@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import { Home, Activity as ActivityIcon, User, Settings as SettingsIcon } from 'lucide-react';
 import { useWallet } from '../lib/wallet';
 import { shortAddr } from '../lib/contracts';
+import { profileHref } from '../lib/format';
 
 export default function LayoutClient({ children }) {
   const router = useRouter();
@@ -16,7 +17,7 @@ export default function LayoutClient({ children }) {
   const tabs = [
     { href: '/',          label: 'Home',     icon: Home,         requireAuth: false },
     { href: '/activity',  label: 'Activity', icon: ActivityIcon, requireAuth: false },
-    { href: address ? `/u/${address}` : null, label: 'Profile', icon: User, requireAuth: true,
+    { href: address ? profileHref(address) : null, label: 'Profile', icon: User, requireAuth: true,
       match: (path) => path.startsWith('/u/') },
     { href: '/settings',  label: 'Settings', icon: SettingsIcon, requireAuth: true },
   ];
