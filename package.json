@@ -10,7 +10,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@asentum/connect": "github:asentum-network/asentum-connect#605e1cd0a06456adfc2a06dda3eabc6be3d4f9af",
+    "@asentum/connect": "github:asentum-network/asentum-connect#c522b395dd9a6330c8117f71c154867021ad3a14",
     "cloudinary": "^2.5.0",
     "lucide-react": "^0.484.0",
     "next": "^15.1.6",
