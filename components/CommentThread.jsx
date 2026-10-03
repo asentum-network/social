@@ -9,7 +9,7 @@ import {
   timeAgo,
 } from '@/lib/contracts';
 import { useWallet } from '@/lib/wallet';
-import { profileHref } from '@/lib/format';
+import { profileHref, ase1Text } from '@/lib/format';
 import BlueCheck from './BlueCheck';
 import Avatar from './Avatar';
 
@@ -144,7 +144,7 @@ function CommentNode({ comment, tree, depth, profiles, premium, postId, me, call
         </div>
 
         <div style={{ fontSize: 14, color: isDeleted ? 'var(--text-3, #7A7A7A)' : 'var(--text-1, #D0D0D0)', fontStyle: isDeleted ? 'italic' : 'normal', lineHeight: 1.45 }}>
-          {isDeleted ? '[deleted]' : comment.body}
+          {isDeleted ? '[deleted]' : ase1Text(comment.body)}
         </div>
 
         {me && !isDeleted && (

@@ -7,7 +7,8 @@
     "dev": "next dev --turbopack -p 3000",
     "build": "next build",
     "start": "next start -p 3000",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "node --test test/*.test.mjs"
   },
   "dependencies": {
     "@asentum/connect": "github:asentum-network/asentum-connect#c522b395dd9a6330c8117f71c154867021ad3a14",

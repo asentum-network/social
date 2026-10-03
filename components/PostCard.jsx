@@ -17,7 +17,7 @@ import { CONTRACTS, isPremium, getCommentCount } from '../lib/contracts';
 import BlueCheck from './BlueCheck';
 import { waitForReceipt } from '../lib/tx';
 import { fetchPostTx } from '../lib/indexer';
-import { fmtCount, timeAgo, shortAddr, profileHref } from '../lib/format';
+import { fmtCount, timeAgo, shortAddr, profileHref, ase1Text } from '../lib/format';
 
 const EXPLORER_BASE = 'https://explorer.asentum.com';
 
@@ -225,7 +225,7 @@ export default function PostCard({
             wordBreak: 'break-word',
           }}
         >
-          {post.content}
+          {ase1Text(post.content)}
         </p>
       )}
 

@@ -1,7 +1,10 @@
 // Feed page. Loads the most-recent N posts from AsentumPosts, fetches
 // profiles + scores + my-vote in parallel, and renders the redesigned
-// stack of PostCards. "For you" shows everything; "Following" filters
-// to authors the connected wallet follows.
+// stack of PostCards. Three tabs:
+//   "For you"   (default) the filtered and ranked feed from /api/feed,
+//               spam rules in lib/feedRank.js.
+//   "All"       every recent post, newest first, straight from the chain.
+//   "Following" the "All" posts from authors the connected wallet follows.
 //   — milkie
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -20,6 +23,30 @@ import PostCard from './PostCard';
 
 const PAGE_SIZE = 30;
 
+const TABS = [
+  { key: 'for-you', label: 'For you' },
+  { key: 'all', label: 'All' },
+  { key: 'following', label: 'Following' },
+];
+
+// getScores returns { [id]: { up, down, score } }; older deploys returned a
+// plain array of numbers. Accept both.
+function scoreOf(list, id, i) {
+  const v = Array.isArray(list) ? list[i] : list?.[id];
+  const n = Number(v && typeof v === 'object' ? v.score : v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+async function loadForYou() {
+  const r = await fetch('/api/feed');
+  if (!r.ok) {
+    let msg = `Feed request failed (${r.status})`;
+    try { msg = (await r.json()).error || msg; } catch { /* keep default */ }
+    throw new Error(msg);
+  }
+  return r.json();
+}
+
 export default function FeedPage() {
   const layout = useLayout();
   const { address, isConnected } = useWallet();
@@ -29,10 +56,14 @@ export default function FeedPage() {
   const [scores, setScores] = useState({});
   const [myVotes, setMyVotes] = useState({});
   const [following, setFollowing] = useState(new Set());
-  const [filter, setFilter] = useState('for-you'); // 'for-you' | 'following'
+  const [filter, setFilter] = useState('for-you'); // 'for-you' | 'all' | 'following'
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  // "Following" filters the "All" list, so both read the chain directly.
+  const source = filter === 'for-you' ? 'for-you' : 'all';
+  const [loadedSource, setLoadedSource] = useState(null);
 
   // Refresh on a manual key + every 15s, plus once when address connects.
   useEffect(() => {
@@ -41,44 +72,59 @@ export default function FeedPage() {
     setError(null);
     (async () => {
       try {
-        const latest = BigInt(await getLatestPostId());
-        if (latest === 0n) {
-          if (!cancelled) {
-            setPosts([]); setProfiles({}); setScores({}); setMyVotes({});
-            setLoading(false);
-          }
-          return;
-        }
-        const from = latest > BigInt(PAGE_SIZE) ? latest - BigInt(PAGE_SIZE - 1) : 1n;
-        const range = await getPostRange(String(from), String(latest));
-        if (cancelled) return;
-        const sorted = (range || []).slice().sort((a, b) => Number(b.id) - Number(a.id));
-        setPosts(sorted);
-
-        // Unique authors → fetch profiles
-        const authors = Array.from(new Set(sorted.map((p) => (p.author || '').toLowerCase())));
-        const profileEntries = await Promise.all(
-          authors.map(async (a) => {
-            try {
-              const prof = await getProfile(a);
-              return [a, prof];
-            } catch {
-              return [a, null];
-            }
-          }),
-        );
-        if (cancelled) return;
-        setProfiles(Object.fromEntries(profileEntries));
-
-        // Scores in one batch
-        const ids = sorted.map((p) => String(p.id));
-        try {
-          const scoreList = await getScores(ids);
+        let sorted;
+        if (source === 'for-you') {
+          const feed = await loadForYou();
           if (cancelled) return;
-          const sm = {};
-          ids.forEach((id, i) => { sm[id] = Number(scoreList?.[i] ?? 0); });
-          setScores(sm);
-        } catch { /* leave scores empty */ }
+          sorted = feed.posts || [];
+          setPosts(sorted);
+          setProfiles(feed.profiles || {});
+          setScores(feed.scores || {});
+          setLoadedSource(source);
+        } else {
+          const latest = BigInt(await getLatestPostId());
+          if (latest === 0n) {
+            if (!cancelled) {
+              setPosts([]); setProfiles({}); setScores({}); setMyVotes({});
+              setLoadedSource(source);
+              setLoading(false);
+            }
+            return;
+          }
+          const from = latest > BigInt(PAGE_SIZE) ? latest - BigInt(PAGE_SIZE - 1) : 1n;
+          const range = await getPostRange(String(from), String(latest));
+          if (cancelled) return;
+          sorted = (range || []).slice().sort((a, b) => Number(b.id) - Number(a.id));
+          setPosts(sorted);
+          setLoadedSource(source);
+
+          // Unique authors → fetch profiles
+          const authors = Array.from(new Set(sorted.map((p) => (p.author || '').toLowerCase())));
+          const profileEntries = await Promise.all(
+            authors.map(async (a) => {
+              try {
+                const prof = await getProfile(a);
+                return [a, prof];
+              } catch {
+                return [a, null];
+              }
+            }),
+          );
+          if (cancelled) return;
+          setProfiles(Object.fromEntries(profileEntries));
+
+          // Scores in one batch
+          const scoreIds = sorted.map((p) => String(p.id));
+          try {
+            const scoreList = await getScores(scoreIds);
+            if (cancelled) return;
+            const sm = {};
+            scoreIds.forEach((id, i) => { sm[id] = scoreOf(scoreList, id, i); });
+            setScores(sm);
+          } catch { /* leave scores empty */ }
+        }
+
+        const ids = sorted.map((p) => String(p.id));
 
         // My votes (only if connected)
         if (address) {
@@ -100,7 +146,7 @@ export default function FeedPage() {
       }
     })();
     return () => { cancelled = true; };
-  }, [address, refreshKey]);
+  }, [address, refreshKey, source]);
 
   // Soft live-refresh every 15s.
   useEffect(() => {
@@ -130,13 +176,15 @@ export default function FeedPage() {
   }, []);
 
   const visible = useMemo(() => {
+    // Never show one tab's posts under another while the switch loads.
+    if (loadedSource !== source) return [];
     if (filter !== 'following') return posts;
     const me = address ? address.toLowerCase() : null;
     return posts.filter((p) => {
       const a = (p.author || '').toLowerCase();
       return following.has(a) || a === me;
     });
-  }, [posts, filter, following, address]);
+  }, [posts, filter, following, address, loadedSource, source]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '14px 14px 140px' }}>
@@ -152,7 +200,7 @@ export default function FeedPage() {
           alignSelf: 'flex-start',
         }}
       >
-        {['for-you', 'following'].map((k) => (
+        {TABS.map(({ key: k, label }) => (
           <button
             key={k}
             onClick={() => setFilter(k)}
@@ -170,12 +218,12 @@ export default function FeedPage() {
               transition: 'background 160ms ease',
             }}
           >
-            {k === 'for-you' ? 'For you' : 'Following'}
+            {label}
           </button>
         ))}
       </div>
 
-      {loading && posts.length === 0 && (
+      {loading && visible.length === 0 && (
         <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-3)', fontSize: 13.5 }}>
           Loading the feed…
         </div>
@@ -199,6 +247,8 @@ export default function FeedPage() {
         >
           {filter === 'following' ? (
             <>You're not following anyone yet.<br />Tap Follow on a post to start your feed.</>
+          ) : filter === 'for-you' ? (
+            <>Nothing here right now.<br />The All tab has every recent post.</>
           ) : (
             <>No posts yet. Be the first.</>
           )}
